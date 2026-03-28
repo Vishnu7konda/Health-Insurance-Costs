@@ -3,22 +3,22 @@ import pandas as pd
 import joblib
 import random
 import hashlib
-import pymongo
 
 scaler = joblib.load("scaler.pkl")
 model = joblib.load("best_model.pkl")
 
-# MongoDB setup
+# MongoDB setup (optional - graceful fallback if not available)
+mongo_available = False
+collection = None
 try:
-    client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
+    import pymongo
+    client = pymongo.MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=2000)
+    client.admin.command('ping')
     db = client["insurance_db"]
     collection = db["predictions"]
-    # Test connection
-    client.admin.command('ping')
-    # st.info("✅ Connected to MongoDB")
-except Exception as e:
-    # st.error(f"❌ Failed to connect to MongoDB: {e}")
-    st.stop()
+    mongo_available = True
+except Exception:
+    pass  # MongoDB not available — app continues without it
 
 st.set_page_config(page_title="Health Insurance Costs Prediction", page_icon="💰", layout="centered")
 st.title("Health Insurance Costs Prediction")
@@ -70,23 +70,23 @@ if submit_button:
 
     prediction = model.predict(input_data)[0]
     
-    # Store data in MongoDB
-    data_to_store = {
-        "name": name,
-        "age": age,
-        "gender": gender,
-        "bmi": bmi,
-        "bloodpressure": bloodpressure,
-        "diabetic": diabetic,
-        "children": children,
-        "smoker": smoker,
-        "predicted_payment": round(prediction, 2).item()
-    }
-    try:
-        collection.insert_one(data_to_store)
-        # st.info("✅ Data saved to MongoDB")
-    except Exception as e:
-        st.error(f"❌ Failed to save data: {e}")
+    # Store data in MongoDB (if available)
+    if mongo_available and collection is not None:
+        data_to_store = {
+            "name": name,
+            "age": age,
+            "gender": gender,
+            "bmi": bmi,
+            "bloodpressure": bloodpressure,
+            "diabetic": diabetic,
+            "children": children,
+            "smoker": smoker,
+            "predicted_payment": round(prediction, 2).item()
+        }
+        try:
+            collection.insert_one(data_to_store)
+        except Exception:
+            pass  # Silently ignore storage errors
     
     st.success(f"✅ Predicted Insurance Payment: ₹{prediction:.2f}/year")
     
@@ -105,4 +105,3 @@ if submit_button:
     
     st.markdown("---")
     st.info("💡 These recommendations are personalized based on your health profile and predicted insurance cost.")
-
