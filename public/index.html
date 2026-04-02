@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HIC — Health Insurance Cost Predictor</title>
+  <meta name="description" content="Predict your health insurance costs instantly with AI. Get personalized insurance recommendations based on your health profile." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #06060f;
+      --card: rgba(255,255,255,0.04);
+      --card-border: rgba(255,255,255,0.08);
+      --purple: #7c3aed;
+      --purple-light: #a855f7;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --text: #f1f5f9;
+      --text-2: rgba(241,245,249,0.6);
+      --text-3: rgba(241,245,249,0.35);
+      --input-bg: rgba(255,255,255,0.05);
+      --input-border: rgba(255,255,255,0.1);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated mesh background ── */
+    .bg-mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 800px 600px at 15% 10%, rgba(124,58,237,.18) 0%, transparent 70%),
+        radial-gradient(ellipse 600px 500px at 85% 90%, rgba(6,182,212,.12) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(16,185,129,.06) 0%, transparent 70%);
+      animation: meshDrift 12s ease-in-out infinite alternate;
+    }
+    @keyframes meshDrift {
+      from { opacity: .8; transform: scale(1); }
+      to   { opacity: 1; transform: scale(1.05) translateY(-10px); }
+    }
+
+    /* Grid dots overlay */
+    .bg-dots {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    .page { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 48px 20px 80px; }
+
+    /* ── Header ── */
+    .header { text-align: center; margin-bottom: 52px; animation: fadeDown .7s ease both; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3);
+      border-radius: 999px; padding: 6px 16px; font-size: 12px; font-weight: 600;
+      color: var(--purple-light); letter-spacing: .06em; text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .pill-dot { width: 6px; height: 6px; background: var(--purple-light); border-radius: 50%; animation: pulse 1.5s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+    .header h1 {
+      font-size: clamp(30px,5.5vw,52px); font-weight: 900; line-height: 1.15;
+      letter-spacing: -.03em; margin-bottom: 16px;
+    }
+    .grad { background: linear-gradient(135deg, var(--purple-light) 0%, var(--cyan) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    .header p { font-size: 17px; color: var(--text-2); max-width: 500px; margin: 0 auto 28px; line-height: 1.65; }
+
+    .stats { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-n { font-size: 24px; font-weight: 800; background: linear-gradient(135deg,var(--purple-light),var(--cyan)); -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+    .stat-l { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card); border: 1px solid var(--card-border); border-radius: 24px;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      padding: 40px; margin-bottom: 24px;
+      animation: fadeUp .7s ease .15s both;
+    }
+
+    .card-heading {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 18px; font-weight: 700; margin-bottom: 32px;
+    }
+    .icon-box {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg,rgba(124,58,237,.35),rgba(6,182,212,.25));
+      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+    }
+
+    /* ── Form ── */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .col-full { grid-column: 1/-1; }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    label { font-size: 11.5px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+
+    input, select {
+      background: var(--input-bg); border: 1px solid var(--input-border);
+      border-radius: 12px; padding: 13px 15px;
+      color: var(--text); font-size: 15px; font-family: 'Inter',sans-serif;
+      outline: none; transition: border-color .25s, box-shadow .25s, background .25s;
+      width: 100%; appearance: none; -webkit-appearance: none;
+    }
+    input:focus, select:focus {
+      border-color: var(--purple); background: rgba(124,58,237,.08);
+      box-shadow: 0 0 0 3px rgba(124,58,237,.18);
+    }
+    input::placeholder { color: var(--text-3); }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(241,245,249,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 38px; cursor: pointer; }
+    select option { background: #13131f; }
+
+    /* ── Submit button ── */
+    .btn {
+      width: 100%; margin-top: 8px; padding: 17px;
+      background: linear-gradient(135deg, var(--purple), #5b21b6);
+      border: none; border-radius: 14px; color: #fff;
+      font-size: 16px; font-weight: 700; font-family: 'Inter',sans-serif;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: transform .25s, box-shadow .25s; letter-spacing: .01em;
+    }
+    .btn::after {
+      content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+      background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+      transition: left .5s ease;
+    }
+    .btn:hover::after { left:100%; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(124,58,237,.45); }
+    .btn:active { transform: translateY(0); }
+    .btn.loading { pointer-events: none; opacity: .8; }
+    .btn .t { display:block; } .btn .s { display:none; }
+    .btn.loading .t { display:none; } .btn.loading .s { display:block; }
+    .spinner { width:22px; height:22px; border:2.5px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .75s linear infinite; margin:0 auto; }
+    @keyframes spin { to{ transform:rotate(360deg); } }
+
+    /* ── Error ── */
+    .err {
+      display: none; margin-top: 14px;
+      background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+      border-radius: 12px; padding: 13px 16px;
+      color: #fca5a5; font-size: 14px;
+    }
+    .err.show { display: block; }
+
+    /* ── Results ── */
+    .results { display: none; }
+    .results.show { display: block; animation: fadeUp .6s ease; }
+
+    .pred-card {
+      border-radius: 24px; padding: 44px 40px; text-align: center; margin-bottom: 24px;
+      background: linear-gradient(135deg,rgba(124,58,237,.14),rgba(6,182,212,.09));
+      border: 1px solid rgba(124,58,237,.28); position: relative; overflow: hidden;
+    }
+    .pred-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--purple),var(--cyan)); }
+
+    .pred-label { font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px; }
+    .pred-amount { font-size: clamp(38px,6vw,58px); font-weight: 900; background:linear-gradient(135deg,var(--purple-light),var(--cyan)); -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; line-height:1; margin-bottom:6px; counter-reset:num; }
+    .pred-per { font-size:15px; color:var(--text-2); margin-bottom:20px; }
+    .pred-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.3); border-radius:999px; padding:7px 18px; font-size:13px; font-weight:600; color:#34d399; }
+
+    /* ── Companies ── */
+    .co-list { list-style:none; display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+    .co-item {
+      display:flex; align-items:center; gap:14px;
+      background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+      border-radius:14px; padding:14px 18px;
+      transition:background .25s,border-color .25s,transform .25s;
+      animation: slideR .4s ease both;
+    }
+    .co-item:nth-child(1){animation-delay:.05s}
+    .co-item:nth-child(2){animation-delay:.12s}
+    .co-item:nth-child(3){animation-delay:.19s}
+    .co-item:nth-child(4){animation-delay:.26s}
+    .co-item:nth-child(5){animation-delay:.33s}
+    .co-item:hover { background:rgba(124,58,237,.1); border-color:rgba(124,58,237,.3); transform:translateX(5px); }
+
+    .rank { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; flex-shrink:0; }
+    .r1{background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#000}
+    .r2{background:linear-gradient(135deg,#d1d5db,#9ca3af);color:#000}
+    .r3{background:linear-gradient(135deg,#d97706,#92400e);color:#fff}
+    .r4,.r5{background:rgba(255,255,255,.08);color:var(--text-3)}
+
+    .co-name { flex:1; font-size:14px; font-weight:600; }
+    .badge { font-size:11px; font-weight:700; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+    .b1,.b2{background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.35);color:#c4b5fd}
+    .b3,.b4{background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--cyan)}
+    .b5{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--text-3)}
+
+    .tip { margin-top:18px; font-size:13px; color:var(--text-3); text-align:center; line-height:1.5; }
+
+    /* ── Footer ── */
+    footer { text-align:center; margin-top:44px; font-size:13px; color:var(--text-3); }
+
+    /* ── Keyframes ── */
+    @keyframes fadeDown { from{opacity:0;transform:translateY(-18px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)}  to{opacity:1;transform:translateY(0)} }
+    @keyframes slideR   { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:translateX(0)} }
+
+    /* ── Responsive ── */
+    @media(max-width:580px){
+      .card{padding:26px 18px}
+      .grid{grid-template-columns:1fr}
+      .col-full{grid-column:1}
+      .stats{gap:28px}
+      .pred-card{padding:32px 20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-dots"></div>
+
+  <main class="page">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="pill"><span class="pill-dot"></span>AI-Powered Prediction</div>
+      <h1>Predict Your <span class="grad">Health Insurance</span> Costs</h1>
+      <p>Enter your health details and our AI model instantly estimates your annual insurance premium — with personalised company picks.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-n">98.2%</div><div class="stat-l">Accuracy</div></div>
+        <div class="stat"><div class="stat-n">10K+</div><div class="stat-l">Predictions</div></div>
+        <div class="stat"><div class="stat-n">5</div><div class="stat-l">Top Insurers</div></div>
+      </div>
+    </header>
+
+    <!-- Form card -->
+    <div class="card">
+      <div class="card-heading"><div class="icon-box">👤</div>Your Health Profile</div>
+
+      <form id="hicForm">
+        <div class="grid">
+
+          <div class="field col-full">
+            <label for="name">Full Name</label>
+            <input id="name" type="text" placeholder="e.g. Arjun Sharma" />
+          </div>
+
+          <div class="field">
+            <label for="age">Age</label>
+            <input id="age" type="number" min="0" max="120" value="30" required />
+          </div>
+
+          <div class="field">
+            <label for="gender">Gender</label>
+            <select id="gender" required>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="bmi">BMI</label>
+            <input id="bmi" type="number" min="10" max="60" step="0.1" value="25.0" required />
+          </div>
+
+          <div class="field">
+            <label for="bloodpressure">Blood Pressure (mmHg)</label>
+            <input id="bloodpressure" type="number" min="60" max="200" value="120" required />
+          </div>
+
+          <div class="field">
+            <label for="diabetic">Diabetic</label>
+            <select id="diabetic" required>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="smoker">Smoker</label>
+            <select id="smoker" required>
+              <option value="no">No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="children">Number of Children</label>
+            <input id="children" type="number" min="0" max="20" value="0" required />
+          </div>
+
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          <span class="t">✨ Predict My Insurance Cost</span>
+          <span class="s"><div class="spinner"></div></span>
+        </button>
+        <div class="err" id="errBox"></div>
+      </form>
+    </div>
+
+    <!-- Results -->
+    <section class="results" id="results">
+
+      <!-- Prediction number -->
+      <div class="pred-card">
+        <div class="pred-label">Estimated Annual Premium</div>
+        <div class="pred-amount" id="predAmt">₹0</div>
+        <div class="pred-per">per year</div>
+        <div class="pred-badge">✅ &nbsp;AI Prediction Complete</div>
+      </div>
+
+      <!-- Recommended companies -->
+      <div class="card">
+        <div class="card-heading"><div class="icon-box">🏆</div>Recommended Insurance Companies</div>
+        <ul class="co-list" id="coList"></ul>
+        <p class="tip">💡 Personalised picks based on your health profile &amp; predicted insurance cost.</p>
+      </div>
+
+    </section>
+
+    <footer>© 2025 HIC — Health Insurance Cost Predictor &nbsp;|&nbsp; Built with AI &amp; ❤️ in India</footer>
+
+  </main>
+
+  <script>
+    const RANKS  = ['r1','r2','r3','r4','r5'];
+    const BADGEC = ['b1','b2','b3','b4','b5'];
+    const LABELS = ['Best Match','Top Rated','Great Value','Popular','Recommended'];
+
+    document.getElementById('hicForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn    = document.getElementById('submitBtn');
+      const errBox = document.getElementById('errBox');
+      const res    = document.getElementById('results');
+
+      btn.classList.add('loading');
+      errBox.classList.remove('show');
+      res.classList.remove('show');
+
+      const payload = {
+        name:          document.getElementById('name').value,
+        age:           document.getElementById('age').value,
+        gender:        document.getElementById('gender').value,
+        bmi:           document.getElementById('bmi').value,
+        bloodpressure: document.getElementById('bloodpressure').value,
+        diabetic:      document.getElementById('diabetic').value,
+        smoker:        document.getElementById('smoker').value,
+        children:      document.getElementById('children').value,
+      };
+
+      try {
+        const r    = await fetch('/predict', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        const data = await r.json();
+
+        if (!r.ok) throw new Error(data.error || 'Prediction failed. Please try again.');
+
+        // show amount with animated count-up
+        const target = data.prediction;
+        const amtEl  = document.getElementById('predAmt');
+        let cur = 0; const step = target / 60;
+        const ticker = setInterval(() => {
+          cur = Math.min(cur + step, target);
+          amtEl.textContent = '₹' + cur.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+          if (cur >= target) clearInterval(ticker);
+        }, 18);
+
+        // build companies list
+        const list = document.getElementById('coList');
+        list.innerHTML = '';
+        data.companies.forEach((name, i) => {
+          const li = document.createElement('li');
+          li.className = 'co-item';
+          li.innerHTML = `
+            <div class="rank ${RANKS[i]}">${i+1}</div>
+            <div class="co-name">${name}</div>
+            <span class="badge ${BADGEC[i]}">${LABELS[i]}</span>
+          `;
+          list.appendChild(li);
+        });
+
+        res.classList.add('show');
+        res.scrollIntoView({ behavior:'smooth', block:'start' });
+
+      } catch (err) {
+        errBox.textContent = '❌ ' + err.message;
+        errBox.classList.add('show');
+      } finally {
+        btn.classList.remove('loading');
+      }
+    });
+  </script>
+</body>
+</html>
